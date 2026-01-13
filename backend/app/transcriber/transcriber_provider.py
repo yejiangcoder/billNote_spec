@@ -3,7 +3,15 @@ import platform
 from enum import Enum
 
 from app.transcriber.groq import GroqTranscriber
-from app.transcriber.whisper import WhisperTranscriber
+
+# 👇👇👇 加上这层防弹衣 👇👇👇
+try:
+    from app.transcriber.whisper import WhisperTranscriber
+    print("SUCCESS: Local Whisper loaded successfully!")
+except ImportError as e:
+    print(f"ERROR: Local Whisper failed to load: {e}")
+    WhisperTranscriber = None
+
 from app.transcriber.bcut import BcutTranscriber
 from app.transcriber.kuaishou import KuaishouTranscriber
 from app.utils.logger import get_logger
