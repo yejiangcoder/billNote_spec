@@ -26,7 +26,7 @@ services:
     env_file:
       - .env
     expose:
-      - "80"  # 不暴露给宿主机，只供 nginx 访问
+      - "80"  # 不暴露给宿主机，只供 nginx 访问_
 
   nginx:
     container_name: bilinote-nginx
