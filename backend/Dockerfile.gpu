@@ -1,16 +1,36 @@
+# 使用 NVIDIA 官方 CUDA 运行时镜像 (Ubuntu 22.04)
 FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
 
-RUN apt update && \
-    apt install -y ffmpeg python3-pip && \
-    apt clean all && \
+# 防止交互式弹窗卡住构建
+ENV DEBIAN_FRONTEND=noninteractive
+
+# 1. 安装系统依赖 (FFmpeg 是核心)
+# 顺便装上 git，防止 requirements 里有 git 依赖
+RUN apt-get update && \
+    apt-get install -y ffmpeg python3-pip git && \
+    apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# 设置 Hugging Face 镜像源环境变量
+# 设置 Hugging Face 镜像源 (国内特供)
 ENV HF_ENDPOINT=https://hf-mirror.com
 
 WORKDIR /app
-COPY ./backend /app
-RUN pip install --no-cache-dir -i https://pypi.mirrors.ustc.edu.cn/simple -r requirements.txt
-RUN pip install --no-cache-dir -i https://pypi.mirrors.ustc.edu.cn/simple 'transformers[torch]>=4.23'
 
+# 2. 🔥 优化点：利用 Docker 缓存机制
+# 先只拷贝依赖清单
+COPY ./backend/requirements.txt /app/requirements.txt
+
+# 3. 安装 Python 依赖
+# 先升级 pip，防止版本过低报错
+RUN python3 -m pip install --no-cache-dir -i https://pypi.mirrors.ustc.edu.cn/simple --upgrade pip && \
+    python3 -m pip install --no-cache-dir -i https://pypi.mirrors.ustc.edu.cn/simple -r requirements.txt
+
+# 单独安装 transformers 以确保版本兼容 (保留你的原逻辑)
+RUN python3 -m pip install --no-cache-dir -i https://pypi.mirrors.ustc.edu.cn/simple 'transformers[torch]>=4.23'
+
+# 4. 🔥 最后再拷贝源代码
+# 这样以后你微调 main.py，上面那几百 MB 的 PyTorch 就不需要重装
+COPY ./backend /app
+
+# 启动指令
 CMD ["python3", "main.py"]
